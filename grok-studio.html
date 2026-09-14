@@ -1,0 +1,1375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>Grok Studio</title>
+  <style>
+    :root {
+      --bg: #f5f5f7;
+      --panel: rgba(255, 255, 255, 0.9);
+      --surface: #ffffff;
+      --surface-2: #f2f2f5;
+      --text: #1d1d1f;
+      --muted: #6e6e73;
+      --line: rgba(29, 29, 31, 0.11);
+      --blue: #0071e3;
+      --blue-hover: #0077ed;
+      --green: #248a3d;
+      --orange: #b25000;
+      --red: #d70015;
+      --shadow: 0 18px 55px rgba(0, 0, 0, 0.08);
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      min-height: 100vh;
+      color: var(--text);
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+
+    .app-shell { min-height: 100vh; }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      height: 64px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(250, 250, 252, 0.82);
+      backdrop-filter: saturate(180%) blur(20px);
+    }
+
+    .topbar-inner {
+      width: min(1480px, calc(100% - 40px));
+      height: 100%;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
+    .brand-mark {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      color: white;
+      background: linear-gradient(145deg, #111, #4a4a4e);
+      border-radius: 8px;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.16), 0 4px 10px rgba(0,0,0,.16);
+    }
+    .brand-mark svg { width: 18px; height: 18px; }
+    .brand-copy { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+    .brand-title { font-size: 16px; font-weight: 650; white-space: nowrap; }
+    .brand-version { color: var(--muted); font-size: 12px; white-space: nowrap; }
+
+    .header-actions { display: flex; align-items: center; gap: 10px; }
+    .connection {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255,255,255,.7);
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .connection-dot { width: 7px; height: 7px; border-radius: 50%; background: #8e8e93; }
+    .connection.active .connection-dot { background: #30d158; box-shadow: 0 0 0 3px rgba(48,209,88,.14); }
+    .connection.warn .connection-dot { background: #ff9f0a; }
+
+    .icon-btn {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      color: #3a3a3c;
+      background: rgba(255,255,255,.8);
+    }
+    .icon-btn:hover { background: #fff; border-color: rgba(29,29,31,.2); }
+    .icon-btn svg { width: 17px; height: 17px; }
+    .icon-btn.active { border-color: var(--blue); color: var(--blue); background: #f1f7ff; }
+
+    main {
+      width: min(1480px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 24px 0 32px;
+      display: grid;
+      grid-template-columns: minmax(340px, 430px) minmax(0, 1fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: 0 1px 2px rgba(0,0,0,.02);
+    }
+
+    .controls { overflow: hidden; }
+    .section { padding: 20px; border-bottom: 1px solid var(--line); }
+    .section:last-child { border-bottom: 0; }
+    .section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 13px; }
+    .section-title { margin: 0; font-size: 13px; font-weight: 650; }
+    .section-meta { font-size: 11px; color: var(--muted); }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 3px;
+      padding: 3px;
+      border-radius: 7px;
+      background: #e9e9ed;
+    }
+    .segment {
+      min-height: 34px;
+      border: 0;
+      border-radius: 5px;
+      background: transparent;
+      color: #636366;
+      font-size: 12px;
+      font-weight: 550;
+    }
+    .segment.active { background: #fff; color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,.12); }
+
+    label { display: block; margin-bottom: 7px; color: #3a3a3c; font-size: 12px; font-weight: 550; }
+    .field + .field { margin-top: 14px; }
+    .input, textarea, select {
+      width: 100%;
+      border: 1px solid rgba(29,29,31,.14);
+      border-radius: 7px;
+      outline: none;
+      color: var(--text);
+      background: rgba(255,255,255,.9);
+      transition: border-color .16s, box-shadow .16s;
+    }
+    .input, select { height: 38px; padding: 0 11px; }
+    textarea { min-height: 132px; padding: 11px 12px; resize: vertical; line-height: 1.55; }
+    .input:focus, textarea:focus, select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(0,113,227,.12); }
+    .input::placeholder, textarea::placeholder { color: #a1a1a6; }
+    .field-note { margin: 7px 0 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
+
+    .key-wrap { position: relative; }
+    .key-wrap .input { padding-right: 43px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; }
+    .key-toggle {
+      position: absolute; top: 2px; right: 2px; width: 34px; height: 34px;
+      border: 0; background: transparent; color: var(--muted); display: grid; place-items: center;
+    }
+    .key-toggle svg { width: 16px; height: 16px; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .ratio-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .orient-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 8px; }
+    .ratio-btn, .orient-btn {
+      height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--muted);
+      background: #fff;
+      font-size: 11px;
+    }
+    .orient-btn { height: 40px; display: grid; place-items: center; line-height: 1.15; }
+    .orient-btn small { display: block; color: #a1a1a6; font-size: 10px; font-weight: 500; }
+    .ratio-btn.active, .orient-btn.active { border-color: var(--blue); color: var(--blue); background: #f1f7ff; box-shadow: inset 0 0 0 1px var(--blue); }
+    .orient-btn.active small { color: var(--blue); }
+
+    .range-line { display: grid; grid-template-columns: 1fr 62px; align-items: center; gap: 12px; }
+    input[type="range"] { width: 100%; accent-color: var(--blue); }
+    .value-chip {
+      height: 32px; display: grid; place-items: center;
+      background: var(--surface-2); border-radius: 6px;
+      font-size: 12px; font-variant-numeric: tabular-nums;
+    }
+
+    .generate-wrap { padding: 16px 20px 20px; background: rgba(250,250,252,.8); }
+    .generate-btn {
+      width: 100%;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      border: 0;
+      border-radius: 7px;
+      color: white;
+      background: var(--blue);
+      font-size: 14px;
+      font-weight: 620;
+      box-shadow: 0 6px 15px rgba(0,113,227,.2);
+    }
+    .generate-btn:hover { background: var(--blue-hover); }
+    .generate-btn:disabled { cursor: not-allowed; background: #a1a1a6; box-shadow: none; }
+    .generate-btn svg { width: 17px; height: 17px; }
+
+    .workspace { min-width: 0; display: grid; gap: 16px; }
+    .preview-panel { padding: 16px; }
+    .preview-head { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 1px 1px 14px; }
+    .preview-title { margin: 0; font-size: 14px; font-weight: 650; }
+    .preview-subtitle { margin: 4px 0 0; color: var(--muted); font-size: 11px; }
+    .preview-actions { display: flex; gap: 7px; }
+    .preview-actions .icon-btn:disabled { opacity: .35; cursor: default; }
+
+    .stage {
+      position: relative;
+      width: 100%;
+      min-height: 470px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      border: 1px solid rgba(29,29,31,.1);
+      border-radius: 7px;
+      background: #e9e9ec;
+    }
+    .stage::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: .45;
+      background-image: linear-gradient(rgba(255,255,255,.45) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.45) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+    .empty-state { position: relative; z-index: 1; max-width: 330px; padding: 24px; text-align: center; }
+    .empty-icon {
+      width: 54px; height: 54px; margin: 0 auto 15px; display: grid; place-items: center;
+      border-radius: 50%; color: #636366; background: rgba(255,255,255,.78);
+      box-shadow: 0 5px 18px rgba(0,0,0,.09);
+    }
+    .empty-icon svg { width: 25px; height: 25px; }
+    .empty-state h2 { margin: 0 0 8px; font-size: 17px; }
+    .empty-state p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+
+    .progress-state { position: relative; z-index: 1; width: min(390px, calc(100% - 48px)); display: none; text-align: center; }
+    .progress-ring {
+      width: 64px; height: 64px; margin: 0 auto 16px; display: grid; place-items: center;
+      border-radius: 50%;
+      background: conic-gradient(var(--blue) var(--progress, 0%), rgba(255,255,255,.7) 0);
+    }
+    .progress-ring::before { content: ""; width: 50px; height: 50px; border-radius: 50%; background: #f1f1f3; }
+    .progress-value {
+      position: absolute; left: 50%; top: 22px; transform: translateX(-50%);
+      font-size: 12px; font-weight: 650; font-variant-numeric: tabular-nums;
+    }
+    .progress-state h2 { margin: 0 0 8px; font-size: 17px; }
+    .progress-state p { margin: 0; color: var(--muted); font-size: 12px; }
+
+    .result-text, .result-image, video, .error-state { position: relative; z-index: 1; display: none; }
+    .result-text {
+      width: calc(100% - 28px);
+      max-height: 72vh;
+      overflow: auto;
+      padding: 22px 24px;
+      border-radius: 7px;
+      background: rgba(255,255,255,.92);
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.7;
+      font-size: 14px;
+    }
+    .result-image { max-width: 100%; max-height: 72vh; object-fit: contain; background: #111; }
+    video { max-width: 100%; max-height: 72vh; width: auto; height: auto; background: #000; }
+
+    .error-state { max-width: 460px; padding: 24px; text-align: center; }
+    .error-state h2 { margin: 0 0 8px; color: var(--red); font-size: 16px; }
+    .error-state p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.55; overflow-wrap: anywhere; }
+
+    .statusbar { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 1px; overflow: hidden; }
+    .metric { padding: 13px 15px; background: rgba(255,255,255,.8); border-right: 1px solid var(--line); }
+    .metric:last-child { border-right: 0; }
+    .metric-label { display: block; color: var(--muted); font-size: 10px; margin-bottom: 4px; }
+    .metric-value {
+      display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      font-size: 12px; font-weight: 590; font-variant-numeric: tabular-nums;
+    }
+
+    .history { overflow: hidden; }
+    .history-head { padding: 16px 18px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
+    .history-head h2 { margin: 0; font-size: 13px; }
+    .text-btn { border: 0; background: transparent; color: var(--blue); font-size: 11px; padding: 4px; }
+    .history-empty { padding: 26px 18px; text-align: center; color: var(--muted); font-size: 12px; }
+    .task-row {
+      display: grid; grid-template-columns: 42px minmax(0,1fr) 78px 70px 32px;
+      align-items: center; gap: 10px; min-height: 62px; padding: 10px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+    .task-row:last-child { border-bottom: 0; }
+    .task-kind {
+      height: 26px; padding: 0 8px; display: grid; place-items: center;
+      border-radius: 999px; background: #eef1f5; color: #3a3a3c; font-size: 10px; font-weight: 620;
+    }
+    .task-kind.chat { background: #eef6ff; color: #0058b0; }
+    .task-kind.image { background: #eefaf0; color: #1f7a36; }
+    .task-kind.video { background: #fff4e8; color: #9a4a00; }
+    .task-prompt { min-width: 0; }
+    .task-prompt strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 590; }
+    .task-prompt span { display: block; margin-top: 4px; color: var(--muted); font-size: 10px; }
+    .task-status { color: var(--muted); font-size: 11px; }
+    .task-status.completed { color: var(--green); }
+    .task-status.failed { color: var(--red); }
+    .task-time { color: var(--muted); font-size: 10px; text-align: right; }
+
+    .toast {
+      position: fixed; left: 50%; bottom: 24px; z-index: 80;
+      transform: translate(-50%, 18px); opacity: 0; pointer-events: none;
+      padding: 10px 14px; border-radius: 7px; color: white;
+      background: rgba(29,29,31,.9); box-shadow: var(--shadow); font-size: 12px;
+      transition: opacity .2s, transform .2s;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    .modal-backdrop {
+      position: fixed; inset: 0; z-index: 40;
+      display: none; align-items: center; justify-content: center;
+      background: rgba(22, 22, 24, .28);
+      backdrop-filter: blur(10px);
+      padding: 24px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      width: min(520px, 100%);
+      max-height: calc(100vh - 48px);
+      overflow: auto;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+    }
+    .modal-head {
+      padding: 18px 20px 14px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--line);
+    }
+    .modal-head h2 { margin: 0; font-size: 16px; }
+    .modal-body { padding: 18px 20px 8px; }
+    .modal-foot {
+      padding: 14px 20px 18px;
+      display: flex; justify-content: space-between; gap: 10px;
+      border-top: 1px solid var(--line);
+    }
+    .ghost-btn, .primary-btn {
+      height: 36px; padding: 0 14px; border-radius: 7px; font-size: 13px; font-weight: 560;
+    }
+    .ghost-btn { border: 1px solid var(--line); background: #fff; color: var(--text); }
+    .primary-btn { border: 0; background: var(--blue); color: #fff; }
+    .primary-btn:hover { background: var(--blue-hover); }
+    .preset-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+    .preset {
+      height: 36px; border: 1px solid var(--line); border-radius: 7px;
+      background: #fff; color: #3a3a3c; font-size: 12px;
+    }
+    .preset.active { border-color: var(--blue); color: var(--blue); background: #f1f7ff; }
+
+    .hidden { display: none !important; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 920px) {
+      main { grid-template-columns: 1fr; }
+      .stage { min-height: 420px; }
+    }
+    @media (max-width: 560px) {
+      .topbar-inner, main { width: min(100% - 24px, 1480px); }
+      .brand-version, .connection span { display: none; }
+      main { padding-top: 12px; gap: 12px; }
+      .section { padding: 17px 15px; }
+      .stage { min-height: 330px; }
+      .statusbar { grid-template-columns: 1fr 1fr; }
+      .metric:nth-child(2) { border-right: 0; }
+      .metric:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+      .task-row { grid-template-columns: 42px minmax(0,1fr) 32px; }
+      .task-time, .task-status { display: none; }
+      .preset-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M12 3.5 14.2 8l4.8.5-3.6 3.3.9 4.7L12 14.7 7.7 16.5l.9-4.7L5 8.5 9.8 8 12 3.5Z"/>
+            </svg>
+          </div>
+          <div class="brand-copy">
+            <span class="brand-title">Grok Studio</span>
+            <span class="brand-version">Chat · Image · Video</span>
+          </div>
+        </div>
+        <div class="header-actions">
+          <div class="connection warn" id="connectionBadge"><i class="connection-dot"></i><span>未配置密钥</span></div>
+          <button class="icon-btn" id="resetBtn" title="重置表单" aria-label="重置表单">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+          </button>
+          <button class="icon-btn" id="settingsBtn" title="设置" aria-label="设置">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9c.3.7.9 1.2 1.6 1.3H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <aside class="panel controls">
+        <form id="generationForm">
+          <div class="section">
+            <div class="section-head"><h2 class="section-title">生成方式</h2><span class="section-meta" id="modeMeta">Grok 4.6</span></div>
+            <div class="segmented" role="tablist" aria-label="生成方式">
+              <button class="segment active" type="button" data-mode="chat">文字</button>
+              <button class="segment" type="button" data-mode="image">图片</button>
+              <button class="segment" type="button" data-mode="video">视频</button>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="field">
+              <label for="prompt">提示词</label>
+              <textarea id="prompt" required placeholder="描述你想生成的内容…"></textarea>
+              <p class="field-note"><span id="promptCount">0</span> 字 · <span id="promptHint">适合提问、改写、推理</span></p>
+            </div>
+
+            <div class="field hidden" id="imageUrlField">
+              <label for="refImageUrl">参考图 URL（可选）</label>
+              <input class="input" id="refImageUrl" type="url" placeholder="https://example.com/frame.jpg">
+              <p class="field-note">视频可用公网图片做图生视频；图片模式可留空</p>
+            </div>
+          </div>
+
+          <div class="section" id="chatOptions">
+            <div class="section-head"><h2 class="section-title">文字设置</h2></div>
+            <div class="field grid-2">
+              <div>
+                <label for="chatModel">模型</label>
+                <select id="chatModel">
+                  <option value="grok-4.6" selected>grok-4.6</option>
+                  <option value="grok-4.5">grok-4.5</option>
+                </select>
+              </div>
+              <div>
+                <label for="maxTokens">最大输出</label>
+                <select id="maxTokens">
+                  <option value="256">256</option>
+                  <option value="1024" selected>1024</option>
+                  <option value="2048">2048</option>
+                  <option value="4096">4096</option>
+                </select>
+              </div>
+            </div>
+            <div class="field grid-2" id="effortField">
+              <div>
+                <label for="reasoningEffort">推理强度</label>
+                <select id="reasoningEffort">
+                  <option value="low">low</option>
+                  <option value="medium">medium</option>
+                  <option value="high" selected>high</option>
+                </select>
+              </div>
+              <div>
+                <label for="temperature">随机度</label>
+                <select id="temperature">
+                  <option value="0">0 · 稳定</option>
+                  <option value="0.7" selected>0.7 · 默认</option>
+                  <option value="1">1 · 发散</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="section hidden" id="imageOptions">
+            <div class="section-head"><h2 class="section-title">图片规格</h2><span class="section-meta">Imagine Image</span></div>
+            <div class="field">
+              <label for="imageModel">模型</label>
+              <select id="imageModel">
+                <option value="grok-imagine-image-2.0" selected>grok-imagine-image-2.0</option>
+                <option value="grok-imagine-image-quality">grok-imagine-image-quality</option>
+                <option value="grok-imagine">grok-imagine</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>宽高比</label>
+              <div class="ratio-grid" id="ratioGrid">
+                <button type="button" class="ratio-btn active" data-ratio="16:9">16:9</button>
+                <button type="button" class="ratio-btn" data-ratio="9:16">9:16</button>
+                <button type="button" class="ratio-btn" data-ratio="1:1">1:1</button>
+                <button type="button" class="ratio-btn" data-ratio="4:3">4:3</button>
+                <button type="button" class="ratio-btn" data-ratio="3:4">3:4</button>
+              </div>
+            </div>
+            <div class="field grid-2">
+              <div>
+                <label for="imageResolution">分辨率</label>
+                <select id="imageResolution">
+                  <option value="1k" selected>1K</option>
+                  <option value="2k">2K</option>
+                </select>
+              </div>
+              <div>
+                <label for="imageCount">数量</label>
+                <select id="imageCount">
+                  <option value="1" selected>1 张</option>
+                  <option value="2">2 张</option>
+                  <option value="4">4 张</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="section hidden" id="videoOptions">
+            <div class="section-head"><h2 class="section-title">视频规格</h2><span class="section-meta">Imagine Video</span></div>
+            <div class="field">
+              <label for="videoModel">模型</label>
+              <select id="videoModel">
+                <option value="grok-imagine-video" selected>grok-imagine-video · 最高 720p</option>
+                <option value="grok-imagine-video-1.5">grok-imagine-video-1.5 · 可 1080p</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>画幅</label>
+              <div class="orient-grid" id="videoOrientGrid">
+                <button type="button" class="orient-btn active" data-ratio="16:9">横屏<small>16:9</small></button>
+                <button type="button" class="orient-btn" data-ratio="9:16">竖屏<small>9:16</small></button>
+                <button type="button" class="orient-btn" data-ratio="1:1">方形<small>1:1</small></button>
+              </div>
+              <div class="ratio-grid" id="videoRatioGrid">
+                <button type="button" class="ratio-btn active" data-ratio="16:9">16:9</button>
+                <button type="button" class="ratio-btn" data-ratio="9:16">9:16</button>
+                <button type="button" class="ratio-btn" data-ratio="1:1">1:1</button>
+                <button type="button" class="ratio-btn" data-ratio="4:3">4:3</button>
+                <button type="button" class="ratio-btn" data-ratio="3:4">3:4</button>
+              </div>
+            </div>
+            <div class="field">
+              <label for="videoResolution">清晰度</label>
+              <select id="videoResolution">
+                <option value="480p">480p</option>
+                <option value="720p" selected>720p</option>
+                <option value="1080p">1080p · 仅 1.5</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="duration">时长</label>
+              <div class="range-line">
+                <input id="duration" type="range" min="4" max="15" step="1" value="4">
+                <div class="value-chip"><span id="durationValue">4 秒</span></div>
+              </div>
+            </div>
+            <p class="field-note" id="videoSpecNote">基础模型最高 720p。想出 1080p 请改用 grok-imagine-video-1.5。</p>
+          </div>
+
+          <div class="generate-wrap">
+            <button class="generate-btn" id="generateBtn" type="submit">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 3 1.3 4.1a5 5 0 0 0 3.2 3.2l4.1 1.3-4.1 1.3a5 5 0 0 0-3.2 3.2L12 20.2l-1.3-4.1a5 5 0 0 0-3.2-3.2l-4.1-1.3 4.1-1.3a5 5 0 0 0 3.2-3.2L12 3Z"/></svg>
+              <span id="generateLabel">生成文字</span>
+            </button>
+          </div>
+        </form>
+      </aside>
+
+      <section class="workspace">
+        <div class="panel preview-panel">
+          <div class="preview-head">
+            <div>
+              <h1 class="preview-title" id="previewTitle">文字预览</h1>
+              <p class="preview-subtitle" id="previewSubtitle">在右上角齿轮填入 Key 后开始</p>
+            </div>
+            <div class="preview-actions">
+              <button class="icon-btn" id="copyBtn" type="button" title="复制" aria-label="复制" disabled>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3"/></svg>
+              </button>
+              <button class="icon-btn" id="downloadBtn" type="button" title="下载" aria-label="下载" disabled>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 19h14"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="stage" id="stage">
+            <div class="empty-state" id="emptyState">
+              <div class="empty-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3.5 14.2 8l4.8.5-3.6 3.3.9 4.7L12 14.7 7.7 16.5l.9-4.7L5 8.5 9.8 8 12 3.5Z"/></svg>
+              </div>
+              <h2 id="emptyTitle">从一句话开始</h2>
+              <p id="emptyText">支持 Grok 聊天、Imagine 生图和生视频。密钥与端点放在右上角设置里，不会写进页面源码以外的记录。</p>
+            </div>
+            <div class="progress-state" id="progressState">
+              <div class="progress-ring" id="progressRing"><span class="progress-value" id="progressValue">0%</span></div>
+              <h2 id="progressTitle">正在创建任务</h2>
+              <p id="progressText">正在连接 Grok 接口…</p>
+            </div>
+            <div class="result-text" id="textResult"></div>
+            <img class="result-image" id="imageViewer" alt="生成图片">
+            <video id="videoPlayer" controls playsinline></video>
+            <div class="error-state" id="errorState"><h2>生成未完成</h2><p id="errorMessage"></p></div>
+          </div>
+        </div>
+
+        <div class="panel statusbar">
+          <div class="metric"><span class="metric-label">任务状态</span><span class="metric-value" id="metricStatus">尚未开始</span></div>
+          <div class="metric"><span class="metric-label">当前模式</span><span class="metric-value" id="metricMode">文字</span></div>
+          <div class="metric"><span class="metric-label">模型</span><span class="metric-value" id="metricModel">grok-4.6</span></div>
+          <div class="metric"><span class="metric-label">任务 ID</span><span class="metric-value" id="metricTask" title="">—</span></div>
+        </div>
+
+        <div class="panel history">
+          <div class="history-head"><h2>本次任务</h2><button class="text-btn" id="clearHistoryBtn" type="button">清空</button></div>
+          <div id="historyList"><div class="history-empty">生成记录会显示在这里</div></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="modal">
+      <div class="modal-head">
+        <h2 id="settingsTitle">接口设置</h2>
+        <button class="icon-btn" id="closeSettingsBtn" type="button" aria-label="关闭设置">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="preset-row">
+          <button class="preset" type="button" data-preset="default">默认端点</button>
+          <button class="preset" type="button" data-preset="cn">中国移动优化</button>
+          <button class="preset" type="button" data-preset="image">生图专用</button>
+          <button class="preset" type="button" data-preset="split">聊天 + 媒体分流</button>
+        </div>
+        <div class="field">
+          <label for="apiKey">API Key</label>
+          <div class="key-wrap">
+            <input class="input" id="apiKey" type="password" autocomplete="off" placeholder="sk-...">
+            <button class="key-toggle" id="keyToggle" type="button" title="显示或隐藏 Key" aria-label="显示或隐藏 Key">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5"/></svg>
+            </button>
+          </div>
+          <p class="field-note">保存在本机浏览器 localStorage，不会上传到别的服务器。</p>
+        </div>
+        <div class="field">
+          <label for="chatBase">聊天端点</label>
+          <input class="input" id="chatBase" placeholder="https://token.dialoguedui.com/v1">
+        </div>
+        <div class="field">
+          <label for="imageBase">生图端点</label>
+          <input class="input" id="imageBase" placeholder="https://img-api.dialoguedui.com/v1">
+        </div>
+        <div class="field">
+          <label for="videoBase">视频端点</label>
+          <input class="input" id="videoBase" placeholder="https://img-api.dialoguedui.com/v1">
+          <p class="field-note">GPT 分组需要带 /v1。视频建议走生图专用域名，避免超时。</p>
+        </div>
+        <p class="field-note" id="proxyHint">这个中转站有 Cloudflare 防护。请先运行 grok_studio_server.py，再用 http://127.0.0.1:8787 打开本页，不要直接双击 HTML。</p>
+      </div>
+      <div class="modal-foot">
+        <button class="ghost-btn" id="testBtn" type="button">测试连接</button>
+        <div style="display:flex;gap:8px;">
+          <button class="ghost-btn" id="cancelSettingsBtn" type="button">取消</button>
+          <button class="primary-btn" id="saveSettingsBtn" type="button">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <script>
+    const STORAGE_KEY = 'grok-studio-settings-v1';
+    const PROXY_PATH = '/__grok_proxy';
+    const PRESETS = {
+      default: {
+        chatBase: 'https://token.dialoguedui.com/v1',
+        imageBase: 'https://token.dialoguedui.com/v1',
+        videoBase: 'https://token.dialoguedui.com/v1'
+      },
+      cn: {
+        chatBase: 'https://cn.dialoguedui.com/v1',
+        imageBase: 'https://cn.dialoguedui.com/v1',
+        videoBase: 'https://cn.dialoguedui.com/v1'
+      },
+      image: {
+        chatBase: 'https://img-api.dialoguedui.com/v1',
+        imageBase: 'https://img-api.dialoguedui.com/v1',
+        videoBase: 'https://img-api.dialoguedui.com/v1'
+      },
+      split: {
+        chatBase: 'https://token.dialoguedui.com/v1',
+        imageBase: 'https://img-api.dialoguedui.com/v1',
+        videoBase: 'https://img-api.dialoguedui.com/v1'
+      }
+    };
+
+    const PROMPTS = {
+      chat: '用三句话说明 Grok Imagine 能做什么，语气干脆，不要营销腔。',
+      image: 'A tiny origami fox sitting on a wooden desk beside a window, soft afternoon light, photorealistic, shallow depth of field',
+      video: 'A tiny origami fox turning its head on a wooden desk, soft window light, photorealistic, 4 seconds'
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const state = {
+      mode: 'chat',
+      ratio: '16:9',
+      videoRatio: '16:9',
+      settings: loadSettings(),
+      current: null,
+      tasks: [],
+      polling: null,
+      proxyReady: location.protocol.startsWith('http') && location.hostname === '127.0.0.1'
+    };
+
+    function syncVideoResolutionOptions() {
+      const select = $('videoResolution');
+      if (!select) return;
+      const model = $('videoModel').value;
+      const allow1080 = model === 'grok-imagine-video-1.5';
+      const option1080 = select.querySelector('option[value="1080p"]');
+      if (option1080) option1080.disabled = !allow1080;
+      if (!allow1080 && select.value === '1080p') select.value = '720p';
+      const note = $('videoSpecNote');
+      if (note) {
+        note.textContent = allow1080
+          ? '1.5 模型支持 480p / 720p / 1080p，可横屏、竖屏或方形。'
+          : '基础模型最高 720p。想出 1080p 请改用 grok-imagine-video-1.5。';
+      }
+    }
+
+    function videoOrientOf(ratio) {
+      if (ratio === '1:1') return '1:1';
+      if (['9:16', '3:4', '2:3'].includes(ratio)) return '9:16';
+      return '16:9';
+    }
+
+    function setVideoRatio(ratio) {
+      state.videoRatio = ratio;
+      const orient = videoOrientOf(ratio);
+      document.querySelectorAll('#videoOrientGrid .orient-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.ratio === orient);
+      });
+      document.querySelectorAll('#videoRatioGrid .ratio-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.ratio === ratio);
+      });
+    }
+
+    function defaultSettings() {
+      return {
+        apiKey: '',
+        ...PRESETS.split
+      };
+    }
+
+    function loadSettings() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return defaultSettings();
+        return { ...defaultSettings(), ...JSON.parse(raw) };
+      } catch {
+        return defaultSettings();
+      }
+    }
+
+    function saveSettings(next) {
+      state.settings = { ...state.settings, ...next };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.settings));
+      refreshConnection();
+    }
+
+    function normalizeBase(url) {
+      return String(url || '').trim().replace(/\/+$/, '');
+    }
+
+    function friendlyNetworkError(error) {
+      const raw = error && error.message ? error.message : String(error || '');
+      if (/Failed to fetch|NetworkError|Load failed/i.test(raw)) {
+        if (location.protocol === 'file:') {
+          return '当前是直接打开 HTML 文件。这个站点有 Cloudflare 防护，浏览器会拦截跨域请求。请运行 grok_studio_server.py，再用 http://127.0.0.1:8787 打开。';
+        }
+        if (!state.proxyReady) {
+          return '无法直连中转站。请用 http://127.0.0.1:8787 打开本页，让本地代理转发请求。';
+        }
+        return '本地代理没有响应。请确认 grok_studio_server.py 仍在运行。';
+      }
+      return raw;
+    }
+
+    async function viaProxy(url, options = {}) {
+      const method = (options.method || 'GET').toUpperCase();
+      const headers = { ...(options.headers || {}) };
+      const payload = {
+        url,
+        method,
+        headers,
+        body: options.body == null ? null : options.body
+      };
+      const response = await fetch(PROXY_PATH, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      return response;
+    }
+
+    async function studioFetch(url, options = {}) {
+      if (state.proxyReady) return viaProxy(url, options);
+      return fetch(url, options);
+    }
+
+    function refreshConnection() {
+      const ready = Boolean(state.settings.apiKey);
+      $('connectionBadge').classList.toggle('warn', !ready);
+      $('connectionBadge').classList.toggle('active', false);
+      if (!$('generateBtn').disabled) {
+        $('connectionBadge').querySelector('span').textContent = ready ? '已就绪' : '未配置密钥';
+      }
+    }
+
+    function iconSpinner() {
+      return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.2-8.6"/></svg>';
+    }
+
+    function showToast(message) {
+      $('toast').textContent = message;
+      $('toast').classList.add('show');
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => $('toast').classList.remove('show'), 2200);
+    }
+
+    function updatePromptCount() {
+      $('promptCount').textContent = $('prompt').value.trim().length;
+    }
+
+    function currentModel() {
+      if (state.mode === 'image') return $('imageModel').value;
+      if (state.mode === 'video') return $('videoModel').value;
+      return $('chatModel').value;
+    }
+
+    function setMode(mode) {
+      const prev = state.mode;
+      if (prev !== mode && !$('prompt').value.trim()) $('prompt').value = PROMPTS[mode];
+      if (prev !== mode && $('prompt').value.trim() === PROMPTS[prev]) $('prompt').value = PROMPTS[mode];
+      state.mode = mode;
+      document.querySelectorAll('.segment').forEach(btn => btn.classList.toggle('active', btn.dataset.mode === mode));
+      $('chatOptions').classList.toggle('hidden', mode !== 'chat');
+      $('imageOptions').classList.toggle('hidden', mode !== 'image');
+      $('videoOptions').classList.toggle('hidden', mode !== 'video');
+      $('imageUrlField').classList.toggle('hidden', mode === 'chat');
+      const labels = { chat: '文字', image: '图片', video: '视频' };
+      $('generateLabel').textContent = `生成${labels[mode]}`;
+      $('previewTitle').textContent = `${labels[mode]}预览`;
+      $('metricMode').textContent = labels[mode];
+      $('modeMeta').textContent = currentModel();
+      $('metricModel').textContent = currentModel();
+      $('promptHint').textContent = mode === 'chat' ? '适合提问、改写、推理' : mode === 'image' ? '建议写主体、光线、风格' : '建议写主体、运动、镜头和时长';
+      $('emptyTitle').textContent = mode === 'chat' ? '从一句话开始' : mode === 'image' ? '把画面想清楚' : '让画面动起来';
+      updatePromptCount();
+      if (!state.current) $('previewSubtitle').textContent = '输入创意并开始生成';
+    }
+
+    function setBusy(isBusy, label) {
+      const btn = $('generateBtn');
+      btn.disabled = isBusy;
+      const names = { chat: '生成文字', image: '生成图片', video: '生成视频' };
+      btn.innerHTML = isBusy
+        ? `${iconSpinner()}<span>${label || '生成中'}</span>`
+        : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 3 1.3 4.1a5 5 0 0 0 3.2 3.2l4.1 1.3-4.1 1.3a5 5 0 0 0-3.2 3.2L12 20.2l-1.3-4.1a5 5 0 0 0-3.2-3.2l-4.1-1.3 4.1-1.3a5 5 0 0 0 3.2-3.2L12 3Z"/></svg><span>${names[state.mode]}</span>`;
+      $('connectionBadge').classList.toggle('active', isBusy);
+      $('connectionBadge').classList.toggle('warn', !isBusy && !state.settings.apiKey);
+      $('connectionBadge').querySelector('span').textContent = isBusy ? '任务运行中' : (state.settings.apiKey ? '已就绪' : '未配置密钥');
+    }
+
+    function showStage(view) {
+      $('emptyState').style.display = view === 'empty' ? '' : 'none';
+      $('progressState').style.display = view === 'progress' ? 'block' : 'none';
+      $('textResult').style.display = view === 'text' ? 'block' : 'none';
+      $('imageViewer').style.display = view === 'image' ? 'block' : 'none';
+      $('videoPlayer').style.display = view === 'video' ? 'block' : 'none';
+      $('errorState').style.display = view === 'error' ? 'block' : 'none';
+    }
+
+    function updateProgress(progress, title, text) {
+      const value = Math.max(0, Math.min(100, Number(progress) || 0));
+      $('progressRing').style.setProperty('--progress', `${value}%`);
+      $('progressValue').textContent = `${Math.round(value)}%`;
+      $('progressTitle').textContent = title;
+      $('progressText').textContent = text;
+      $('metricStatus').textContent = title;
+      $('previewSubtitle').textContent = `${title} · ${Math.round(value)}%`;
+    }
+
+    function decodeEntities(value) {
+      const doc = new DOMParser().parseFromString(String(value || ''), 'text/html');
+      return doc.documentElement.textContent || '';
+    }
+
+    function escapeHtml(text) {
+      return String(text || '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+    }
+
+    async function apiFetch(url, options = {}) {
+      const apiKey = state.settings.apiKey.trim();
+      if (!apiKey) throw new Error('请先在右上角齿轮里填写 API Key。');
+      let response;
+      try {
+        response = await studioFetch(url, {
+          ...options,
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Accept': 'application/json',
+            ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+            ...(options.headers || {})
+          }
+        });
+      } catch (error) {
+        throw new Error(friendlyNetworkError(error));
+      }
+      const raw = await response.text();
+      let data;
+      try { data = raw ? JSON.parse(raw) : {}; } catch { data = { message: raw }; }
+      if (!response.ok) {
+        const detail = data?.error?.message || data?.error || data?.message || data?.detail || `HTTP ${response.status}`;
+        throw new Error(decodeEntities(typeof detail === 'string' ? detail : JSON.stringify(detail)));
+      }
+      return data;
+    }
+
+    async function fetchAuthorizedBlob(url) {
+      const apiKey = state.settings.apiKey.trim();
+      let response;
+      try {
+        response = await studioFetch(url, { method: 'GET', headers: { 'Authorization': `Bearer ${apiKey}` } });
+      } catch (error) {
+        throw new Error(friendlyNetworkError(error));
+      }
+      if (!response.ok) throw new Error(`下载失败 HTTP ${response.status}`);
+      return response.blob();
+    }
+
+    function addTask(partial) {
+      const task = {
+        id: partial.id || '',
+        kind: partial.kind,
+        prompt: partial.prompt,
+        model: partial.model,
+        status: partial.status || 'running',
+        created: Date.now(),
+        text: '',
+        imageUrl: '',
+        videoUrl: '',
+        blobUrl: '',
+        mime: ''
+      };
+      state.tasks.unshift(task);
+      state.current = task;
+      renderHistory();
+      $('metricTask').textContent = task.id || '进行中';
+      $('metricTask').title = task.id || '';
+      return task;
+    }
+
+    function renderHistory() {
+      if (!state.tasks.length) {
+        $('historyList').innerHTML = '<div class="history-empty">生成记录会显示在这里</div>';
+        return;
+      }
+      const kindName = { chat: '文字', image: '图片', video: '视频' };
+      $('historyList').innerHTML = state.tasks.map((task, index) => `
+        <div class="task-row">
+          <span class="task-kind ${task.kind}">${kindName[task.kind]}</span>
+          <div class="task-prompt">
+            <strong title="${escapeHtml(task.prompt)}">${escapeHtml(task.prompt)}</strong>
+            <span>${escapeHtml(task.model)}${task.id ? ' · ' + escapeHtml(task.id) : ''}</span>
+          </div>
+          <span class="task-status ${task.status}">${statusText(task.status)}</span>
+          <span class="task-time">${new Date(task.created).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>
+          <button class="icon-btn" type="button" aria-label="查看任务" title="查看任务" data-index="${index}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>`).join('');
+      $('historyList').querySelectorAll('[data-index]').forEach(btn => {
+        btn.addEventListener('click', () => selectTask(Number(btn.dataset.index)));
+      });
+    }
+
+    function statusText(status) {
+      return ({ running: '生成中', queued: '排队中', completed: '已完成', failed: '失败' })[status] || status || '未知';
+    }
+
+    function enableActions(enabled) {
+      $('copyBtn').disabled = !enabled;
+      $('downloadBtn').disabled = !enabled;
+    }
+
+    function selectTask(index) {
+      const task = state.tasks[index];
+      if (!task) return;
+      state.current = task;
+      $('metricTask').textContent = task.id || '—';
+      $('metricTask').title = task.id || '';
+      $('metricStatus').textContent = statusText(task.status);
+      $('metricModel').textContent = task.model;
+      if (task.status !== 'completed') return showToast('该任务还没有可预览的结果');
+      if (task.kind === 'chat') showText(task.text, task);
+      if (task.kind === 'image') showImage(task.imageUrl, task);
+      if (task.kind === 'video') showVideo(task.blobUrl || task.videoUrl, task);
+    }
+
+    function showText(text, task) {
+      $('textResult').textContent = text;
+      showStage('text');
+      enableActions(true);
+      $('previewSubtitle').textContent = '生成完成 · 可复制或下载';
+      $('metricStatus').textContent = '已完成';
+      if (task) { task.text = text; task.status = 'completed'; renderHistory(); }
+    }
+
+    function showImage(url, task) {
+      $('imageViewer').src = url;
+      showStage('image');
+      enableActions(true);
+      $('previewSubtitle').textContent = '生成完成 · 可复制或下载';
+      $('metricStatus').textContent = '已完成';
+      if (task) { task.imageUrl = url; task.status = 'completed'; renderHistory(); }
+    }
+
+    function showVideo(url, task) {
+      $('videoPlayer').src = url;
+      showStage('video');
+      enableActions(true);
+      $('previewSubtitle').textContent = '生成完成 · 可播放或下载';
+      $('metricStatus').textContent = '已完成';
+      if (task) { task.blobUrl = url; task.status = 'completed'; renderHistory(); }
+    }
+
+    function showError(error, task) {
+      showStage('error');
+      $('errorMessage').textContent = error.message || String(error);
+      $('metricStatus').textContent = '生成失败';
+      $('previewSubtitle').textContent = '请检查设置、参数或稍后重试';
+      enableActions(false);
+      if (task) { task.status = 'failed'; renderHistory(); }
+    }
+
+    async function generateChat(task) {
+      const payload = {
+        model: $('chatModel').value,
+        messages: [{ role: 'user', content: $('prompt').value.trim() }],
+        max_tokens: Number($('maxTokens').value),
+        temperature: Number($('temperature').value),
+        stream: false
+      };
+      if (payload.model === 'grok-4.5') payload.reasoning_effort = $('reasoningEffort').value;
+      updateProgress(12, '正在生成文字', 'Grok 正在组织回答…');
+      const url = `${normalizeBase(state.settings.chatBase)}/chat/completions`;
+      const data = await apiFetch(url, { method: 'POST', body: JSON.stringify(payload) });
+      const text = data?.choices?.[0]?.message?.content || '';
+      if (!text) throw new Error('聊天接口没有返回文本。');
+      task.id = data.id || 'chat';
+      $('metricTask').textContent = task.id;
+      showText(text, task);
+    }
+
+    async function generateImage(task) {
+      updateProgress(15, '正在生成图片', 'Grok Imagine 正在绘制画面…');
+      const payload = {
+        model: $('imageModel').value,
+        prompt: $('prompt').value.trim(),
+        n: Number($('imageCount').value),
+        response_format: 'b64_json',
+        aspect_ratio: state.ratio,
+        resolution: $('imageResolution').value
+      };
+      const ref = $('refImageUrl').value.trim();
+      if (ref) payload.image = ref;
+      const data = await apiFetch(`${normalizeBase(state.settings.imageBase)}/images/generations`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      const item = data?.data?.[0] || {};
+      let url = '';
+      if (item.b64_json) url = `data:image/jpeg;base64,${item.b64_json}`;
+      else if (item.url) url = item.url;
+      if (!url) throw new Error('图片已生成，但响应里没有图像数据。');
+      task.id = data.created ? String(data.created) : 'image';
+      $('metricTask').textContent = task.id;
+      showImage(url, task);
+    }
+
+    async function generateVideo(task) {
+      updateProgress(8, '正在创建视频任务', '已提交到 Grok Imagine Video…');
+      syncVideoResolutionOptions();
+      const payload = {
+        model: $('videoModel').value,
+        prompt: $('prompt').value.trim(),
+        duration: Number($('duration').value),
+        aspect_ratio: state.videoRatio,
+        resolution: $('videoResolution').value
+      };
+      const ref = $('refImageUrl').value.trim();
+      if (ref) payload.image = { url: ref };
+      const created = await apiFetch(`${normalizeBase(state.settings.videoBase)}/videos/generations`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      const requestId = created.request_id || created.id || created.video_id;
+      if (!requestId) throw new Error('视频任务已提交，但没有返回 request_id。');
+      task.id = requestId;
+      $('metricTask').textContent = requestId;
+      $('metricTask').title = requestId;
+      renderHistory();
+
+      const started = Date.now();
+      while (true) {
+        await new Promise(resolve => state.polling = setTimeout(resolve, 2500));
+        const result = await apiFetch(`${normalizeBase(state.settings.videoBase)}/videos/${encodeURIComponent(requestId)}`);
+        const progress = Number(result.progress);
+        const status = result.status || 'queued';
+        const title = status === 'done' || status === 'completed' ? '即将完成' : status === 'queued' ? '任务排队中' : '正在生成视频';
+        updateProgress(Number.isFinite(progress) ? progress : Math.min(92, (Date.now() - started) / 400), title, '完成后会自动下载到本地预览');
+        if (status === 'done' || status === 'completed') {
+          const relative = result.video?.url || `/v1/videos/${requestId}/content`;
+          const contentUrl = /^https?:\/\//i.test(relative)
+            ? relative
+            : `${normalizeBase(state.settings.videoBase)}${relative.replace(/^\/v1/, '')}`;
+          const blob = await fetchAuthorizedBlob(contentUrl);
+          const blobUrl = URL.createObjectURL(blob);
+          task.videoUrl = contentUrl;
+          task.mime = blob.type || 'video/mp4';
+          showVideo(blobUrl, task);
+          return;
+        }
+        if (status === 'failed' || status === 'error') {
+          throw new Error(result.error?.message || result.error || '视频生成失败。');
+        }
+      }
+    }
+
+    $('generationForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      let task;
+      try {
+        clearTimeout(state.polling);
+        setBusy(true, '生成中');
+        showStage('progress');
+        enableActions(false);
+        updateProgress(4, '正在创建任务', '正在连接 Grok 接口…');
+        task = addTask({
+          kind: state.mode,
+          prompt: $('prompt').value.trim(),
+          model: currentModel(),
+          status: 'running'
+        });
+        $('metricModel').textContent = task.model;
+        if (state.mode === 'chat') await generateChat(task);
+        if (state.mode === 'image') await generateImage(task);
+        if (state.mode === 'video') await generateVideo(task);
+        showToast('生成完成');
+      } catch (error) {
+        showError(new Error(friendlyNetworkError(error)), task);
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    document.querySelectorAll('.segment').forEach(btn => btn.addEventListener('click', () => setMode(btn.dataset.mode)));
+    document.querySelectorAll('#ratioGrid .ratio-btn').forEach(btn => btn.addEventListener('click', () => {
+      document.querySelectorAll('#ratioGrid .ratio-btn').forEach(item => item.classList.toggle('active', item === btn));
+      state.ratio = btn.dataset.ratio;
+    }));
+    document.querySelectorAll('#videoOrientGrid .orient-btn, #videoRatioGrid .ratio-btn').forEach(btn => {
+      btn.addEventListener('click', () => setVideoRatio(btn.dataset.ratio));
+    });
+    $('videoModel').addEventListener('change', syncVideoResolutionOptions);
+    ['chatModel', 'imageModel', 'videoModel'].forEach(id => {
+      $(id).addEventListener('change', () => {
+        $('modeMeta').textContent = currentModel();
+        $('metricModel').textContent = currentModel();
+      });
+    });
+    $('duration').addEventListener('input', () => {
+      $('durationValue').textContent = `${$('duration').value} 秒`;
+    });
+    $('prompt').addEventListener('input', updatePromptCount);
+
+    function fillSettingsForm() {
+      $('apiKey').value = state.settings.apiKey || '';
+      $('chatBase').value = state.settings.chatBase;
+      $('imageBase').value = state.settings.imageBase;
+      $('videoBase').value = state.settings.videoBase;
+      const matched = Object.entries(PRESETS).find(([, value]) =>
+        value.chatBase === state.settings.chatBase &&
+        value.imageBase === state.settings.imageBase &&
+        value.videoBase === state.settings.videoBase
+      );
+      document.querySelectorAll('.preset').forEach(btn => btn.classList.toggle('active', matched && btn.dataset.preset === matched[0]));
+    }
+
+    function openSettings() {
+      fillSettingsForm();
+      $('settingsModal').classList.add('open');
+      $('settingsBtn').classList.add('active');
+    }
+
+    function closeSettings() {
+      $('settingsModal').classList.remove('open');
+      $('settingsBtn').classList.remove('active');
+    }
+
+    $('settingsBtn').addEventListener('click', openSettings);
+    $('closeSettingsBtn').addEventListener('click', closeSettings);
+    $('cancelSettingsBtn').addEventListener('click', closeSettings);
+    $('settingsModal').addEventListener('click', (event) => {
+      if (event.target === $('settingsModal')) closeSettings();
+    });
+    document.querySelectorAll('.preset').forEach(btn => btn.addEventListener('click', () => {
+      const preset = PRESETS[btn.dataset.preset];
+      $('chatBase').value = preset.chatBase;
+      $('imageBase').value = preset.imageBase;
+      $('videoBase').value = preset.videoBase;
+      document.querySelectorAll('.preset').forEach(item => item.classList.toggle('active', item === btn));
+    }));
+    $('keyToggle').addEventListener('click', () => {
+      $('apiKey').type = $('apiKey').type === 'password' ? 'text' : 'password';
+    });
+    $('saveSettingsBtn').addEventListener('click', () => {
+      saveSettings({
+        apiKey: $('apiKey').value.trim(),
+        chatBase: normalizeBase($('chatBase').value) || PRESETS.split.chatBase,
+        imageBase: normalizeBase($('imageBase').value) || PRESETS.split.imageBase,
+        videoBase: normalizeBase($('videoBase').value) || PRESETS.split.videoBase
+      });
+      closeSettings();
+      showToast(state.settings.apiKey ? '设置已保存' : '端点已保存，还差 API Key');
+    });
+    async function detectProxy() {
+      try {
+        const res = await fetch('/__grok_health', { cache: 'no-store' });
+        state.proxyReady = res.ok;
+      } catch {
+        state.proxyReady = false;
+      }
+      const hint = $('proxyHint');
+      if (hint) {
+        hint.textContent = state.proxyReady
+          ? '本地代理已接通，请求会经本机浏览器通道转发，可避开 Cloudflare 拦截。'
+          : '这个中转站有 Cloudflare 防护。请先运行 grok_studio_server.py，再用 http://127.0.0.1:8787 打开本页，不要直接双击 HTML。';
+      }
+      return state.proxyReady;
+    }
+
+    $('testBtn').addEventListener('click', async () => {
+      const temp = {
+        apiKey: $('apiKey').value.trim(),
+        chatBase: normalizeBase($('chatBase').value),
+        imageBase: normalizeBase($('imageBase').value),
+        videoBase: normalizeBase($('videoBase').value)
+      };
+      if (!temp.apiKey) return showToast('请先填写 API Key');
+      try {
+        $('testBtn').disabled = true;
+        $('testBtn').textContent = '测试中…';
+        await detectProxy();
+        const prev = state.settings;
+        state.settings = { ...prev, ...temp };
+        const data = await apiFetch(`${temp.chatBase}/models`);
+        const ids = (data.data || []).map(item => item.id).slice(0, 6).join('、');
+        showToast(ids ? `连接成功：${ids}` : '连接成功');
+        state.settings = prev;
+      } catch (error) {
+        showToast(friendlyNetworkError(error) || '连接失败');
+      } finally {
+        $('testBtn').disabled = false;
+        $('testBtn').textContent = '测试连接';
+      }
+    });
+
+    $('copyBtn').addEventListener('click', async () => {
+      const task = state.current;
+      if (!task) return;
+      if (task.kind === 'chat') {
+        await navigator.clipboard.writeText(task.text || '');
+        return showToast('文本已复制');
+      }
+      const url = task.kind === 'image' ? task.imageUrl : (task.videoUrl || task.blobUrl);
+      if (!url) return;
+      await navigator.clipboard.writeText(url);
+      showToast(task.kind === 'image' ? '图片地址已复制' : '视频地址已复制');
+    });
+
+    $('downloadBtn').addEventListener('click', async () => {
+      const task = state.current;
+      if (!task) return;
+      const stamp = Date.now();
+      if (task.kind === 'chat') {
+        const blob = new Blob([task.text || ''], { type: 'text/plain;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `grok-text-${stamp}.txt`;
+        a.click();
+        return;
+      }
+      if (task.kind === 'image') {
+        const a = document.createElement('a');
+        a.href = task.imageUrl;
+        a.download = `grok-image-${stamp}.jpg`;
+        a.click();
+        return;
+      }
+      const a = document.createElement('a');
+      a.href = task.blobUrl || task.videoUrl;
+      a.download = `grok-video-${stamp}.mp4`;
+      a.click();
+    });
+
+    $('clearHistoryBtn').addEventListener('click', () => {
+      state.tasks = [];
+      state.current = null;
+      renderHistory();
+    });
+
+    $('resetBtn').addEventListener('click', () => {
+      if ($('generateBtn').disabled) return showToast('任务运行时无法重置');
+      $('prompt').value = PROMPTS[state.mode];
+      $('refImageUrl').value = '';
+      $('chatModel').value = 'grok-4.6';
+      $('imageModel').value = 'grok-imagine-image-2.0';
+      $('videoModel').value = 'grok-imagine-video';
+      $('videoResolution').value = '720p';
+      $('duration').value = 4;
+      $('durationValue').textContent = '4 秒';
+      state.ratio = '16:9';
+      setVideoRatio('16:9');
+      document.querySelectorAll('#ratioGrid .ratio-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.ratio === '16:9'));
+      syncVideoResolutionOptions();
+      enableActions(false);
+      showStage('empty');
+      $('metricStatus').textContent = '尚未开始';
+      $('metricTask').textContent = '—';
+      $('previewSubtitle').textContent = '输入创意并开始生成';
+      setMode(state.mode);
+      showToast('表单已重置');
+    });
+
+    $('prompt').value = PROMPTS.chat;
+    setVideoRatio('16:9');
+    syncVideoResolutionOptions();
+    setMode('chat');
+    refreshConnection();
+    detectProxy();
+  </script>
+</body>
+</html>
